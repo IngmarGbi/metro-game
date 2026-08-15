@@ -24,20 +24,27 @@ export default function SchematicGame() {
   const [lastPoints, setLastPoints] = useState<number | null>(null);
   const [history, setHistory] = useState<RoundResult[]>([]);
   const [coloredLines, setColoredLines] = useState(false);
+  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
   const target = rounds[roundIndex];
   const gameOver = roundIndex >= rounds.length;
   const totalScore = history.reduce((acc, r) => acc + r.points, 0);
 
-  const handleGuess = (stationId: string) => {
+  const handleSelectStation = (stationId: string) => {
     if (resolved || !target) return;
-    if (stationId === target.id) {
+    setSelectedStationId(stationId);
+  };
+
+  const handleValidate = () => {
+    if (resolved || !target || !selectedStationId) return;
+    if (selectedStationId === target.id) {
       const points = attemptsLeft;
       setLastPoints(points);
       setResolved(true);
       return;
     }
-    setWrongGuessIds((prev) => (prev.includes(stationId) ? prev : [...prev, stationId]));
+    setWrongGuessIds((prev) => (prev.includes(selectedStationId) ? prev : [...prev, selectedStationId]));
+    setSelectedStationId(null);
     const remaining = attemptsLeft - 1;
     setAttemptsLeft(remaining);
     if (remaining <= 0) {
@@ -53,6 +60,7 @@ export default function SchematicGame() {
     setWrongGuessIds([]);
     setResolved(false);
     setLastPoints(null);
+    setSelectedStationId(null);
   };
 
   const restart = () => {
@@ -63,6 +71,7 @@ export default function SchematicGame() {
     setResolved(false);
     setLastPoints(null);
     setHistory([]);
+    setSelectedStationId(null);
   };
 
   const finalScore = useMemo(
@@ -118,8 +127,8 @@ export default function SchematicGame() {
           ))}
         </div>
         <p className="text-slate-400 text-sm">
-          Clique sur la station correspondante ({attemptsLeft} tentative{attemptsLeft > 1 ? "s" : ""} restante
-          {attemptsLeft > 1 ? "s" : ""}).
+          Clique sur une station pour la sélectionner, puis valide ta réponse ({attemptsLeft} tentative
+          {attemptsLeft > 1 ? "s" : ""} restante{attemptsLeft > 1 ? "s" : ""}).
         </p>
       </div>
 
@@ -128,10 +137,11 @@ export default function SchematicGame() {
           disabled={resolved}
           correctStationId={target.id}
           wrongGuessIds={wrongGuessIds}
+          selectedStationId={selectedStationId}
           revealCorrect={resolved}
           coloredLines={coloredLines}
           onToggleColoredLines={() => setColoredLines((v) => !v)}
-          onGuess={handleGuess}
+          onSelectStation={handleSelectStation}
         />
       </div>
 
@@ -152,6 +162,13 @@ export default function SchematicGame() {
               {roundIndex + 1 < ROUNDS ? "Manche suivante" : "Voir le score final"}
             </button>
           </div>
+        ) : selectedStationId ? (
+          <button
+            onClick={handleValidate}
+            className="px-6 py-2 rounded-full bg-orange-500 hover:bg-orange-400 font-semibold"
+          >
+            Valider ma réponse
+          </button>
         ) : (
           <p className="text-slate-500 text-sm">
             {wrongGuessIds.length > 0 ? "Raté, essaie encore !" : "Sélectionne une station sur le plan…"}

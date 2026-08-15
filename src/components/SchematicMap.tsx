@@ -11,10 +11,11 @@ interface Props {
   disabled: boolean;
   correctStationId: string | null;
   wrongGuessIds: string[];
+  selectedStationId: string | null;
   revealCorrect: boolean;
   coloredLines: boolean;
   onToggleColoredLines: () => void;
-  onGuess: (stationId: string) => void;
+  onSelectStation: (stationId: string) => void;
 }
 
 const MIN_SCALE = 0.7;
@@ -26,10 +27,11 @@ export default function SchematicMap({
   disabled,
   correctStationId,
   wrongGuessIds,
+  selectedStationId,
   revealCorrect,
   coloredLines,
   onToggleColoredLines,
-  onGuess,
+  onSelectStation,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [transform, setTransform] = useState({ scale: 1.6, tx: -180, ty: -80 });
@@ -90,7 +92,7 @@ export default function SchematicMap({
     const localX = (p.x - transform.tx) / transform.scale;
     const localY = (p.y - transform.ty) / transform.scale;
     const nearest = nearestSchematicStation(localX, localY);
-    onGuess(nearest.id);
+    onSelectStation(nearest.id);
   };
 
   const zoomBy = useCallback((factor: number, center?: { x: number; y: number }) => {
@@ -175,6 +177,17 @@ export default function SchematicMap({
               </g>
             );
           })}
+
+          {selectedStationId && SCHEMATIC_STATIONS_BY_ID[selectedStationId] && (
+            <circle
+              cx={SCHEMATIC_STATIONS_BY_ID[selectedStationId].sx}
+              cy={SCHEMATIC_STATIONS_BY_ID[selectedStationId].sy}
+              r={3.2}
+              fill="#3b82f6"
+              stroke="white"
+              strokeWidth={0.8}
+            />
+          )}
 
           {revealCorrect && correctStationId && SCHEMATIC_STATIONS_BY_ID[correctStationId] && (
             <g>
