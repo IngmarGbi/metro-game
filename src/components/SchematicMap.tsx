@@ -70,30 +70,40 @@ export default function SchematicMap({
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!drag.current) return;
+    const d = drag.current;
+    if (!d) return;
     const p = getSvgPoint(e.clientX, e.clientY);
-    const dx = p.x - drag.current.startX;
-    const dy = p.y - drag.current.startY;
+    const dx = p.x - d.startX;
+    const dy = p.y - d.startY;
     if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
-      drag.current.moved = true;
+      d.moved = true;
     }
+    // Capture start values into locals (`d`) rather than reading `drag.current`
+    // again here: this callback can run after pointerup/pointercancel has
+    // already cleared the ref, and `drag.current!.startTx` would then throw.
     setTransform((t) => ({
       ...t,
-      tx: drag.current!.startTx + dx,
-      ty: drag.current!.startTy + dy,
+      tx: d.startTx + dx,
+      ty: d.startTy + dy,
     }));
   };
 
-  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+  const endDrag = (e: React.PointerEvent<SVGSVGElement>, select: boolean) => {
     const d = drag.current;
     drag.current = null;
-    if (disabled || !d || d.moved) return;
+    if ((e.target as Element).hasPointerCapture?.(e.pointerId)) {
+      (e.target as Element).releasePointerCapture(e.pointerId);
+    }
+    if (!select || disabled || !d || d.moved) return;
     const p = getSvgPoint(e.clientX, e.clientY);
     const localX = (p.x - transform.tx) / transform.scale;
     const localY = (p.y - transform.ty) / transform.scale;
     const nearest = nearestSchematicStation(localX, localY);
     onSelectStation(nearest.id);
   };
+
+  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => endDrag(e, true);
+  const handlePointerCancel = (e: React.PointerEvent<SVGSVGElement>) => endDrag(e, false);
 
   const zoomBy = useCallback((factor: number, center?: { x: number; y: number }) => {
     setTransform((t) => {
@@ -117,8 +127,14 @@ export default function SchematicMap({
     if (!svg) return;
     const handler = (e: WheelEvent) => {
       e.preventDefault();
-      const p = getSvgPoint(e.clientX, e.clientY);
-      zoomBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, p);
+      // Trackpad pinch-to-zoom is synthesized as wheel+ctrlKey by the browser;
+      // a plain two-finger swipe (ctrlKey false) should pan, not zoom.
+      if (e.ctrlKey) {
+        const p = getSvgPoint(e.clientX, e.clientY);
+        zoomBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, p);
+      } else {
+        setTransform((t) => ({ ...t, tx: t.tx - e.deltaX, ty: t.ty - e.deltaY }));
+      }
     };
     svg.addEventListener("wheel", handler, { passive: false });
     return () => svg.removeEventListener("wheel", handler);
@@ -133,6 +149,7 @@ export default function SchematicMap({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         <g transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.scale})`}>
           {LINE_EDGES.map((edge, i) => {
