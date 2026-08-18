@@ -1577,7 +1577,7 @@
  {
   "line": "7bis",
   "a": "danube",
-  "b": "place-des-fetes"
+  "b": "pre-saint-gervais"
  },
  {
   "line": "7bis",
@@ -2288,5 +2288,10 @@
   "line": "5",
   "a": "gare-du-nord",
   "b": "stalingrad"
+ },
+ {
+  "line": "7bis",
+  "a": "place-des-fetes",
+  "b": "botzaris"
  }
 ]
