@@ -10,7 +10,7 @@ export const STATIONS_BY_ID: Record<string, Station> = Object.fromEntries(
 );
 
 /** Fisher-Yates shuffle, pure (does not mutate input). */
-function shuffle<T>(arr: T[], rand: () => number = Math.random): T[] {
+export function shuffle<T>(arr: T[], rand: () => number = Math.random): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
@@ -19,6 +19,6 @@ function shuffle<T>(arr: T[], rand: () => number = Math.random): T[] {
   return copy;
 }
 
-export function pickRandomStations(count: number): Station[] {
-  return shuffle(STATIONS).slice(0, count);
+export function pickRandomStations(count: number, pool: Station[] = STATIONS): Station[] {
+  return shuffle(pool).slice(0, count);
 }

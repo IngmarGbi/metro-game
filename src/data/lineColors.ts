@@ -15,8 +15,18 @@ export const LINE_COLORS: Record<string, string> = {
   "12": "#00814F",
   "13": "#98D4E2",
   "14": "#662483",
+  RERB: "#4472C4",
+  T2: "#C04191",
 };
 
 export function lineColor(line: string): string {
   return LINE_COLORS[line] ?? "#999999";
+}
+
+const LINE_LABELS: Record<string, string> = {
+  RERB: "B",
+};
+
+export function lineLabel(line: string): string {
+  return LINE_LABELS[line] ?? line;
 }

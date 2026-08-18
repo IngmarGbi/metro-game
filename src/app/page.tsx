@@ -8,11 +8,11 @@ export default function Home() {
           Métro <span className="text-orange-400">Mania</span>
         </h1>
         <p className="text-slate-400 max-w-md mx-auto">
-          Teste ta connaissance du métro parisien en 2 modes de jeu.
+          Teste ta connaissance du métro parisien en 3 modes de jeu.
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-6 w-full max-w-3xl">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
         <Link
           href="/geo"
           className="group flex flex-col gap-3 p-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-orange-400 transition-colors text-left"
@@ -36,6 +36,17 @@ export default function Home() {
           <p className="text-slate-400 text-sm">
             Retrouve la station sur le plan du métro. Tu as 3 tentatives par manche.
           </p>
+          <span className="mt-auto text-orange-400 font-semibold group-hover:translate-x-1 transition-transform">
+            Jouer →
+          </span>
+        </Link>
+
+        <Link
+          href="/special-lucie"
+          className="group flex flex-col gap-3 p-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-orange-400 transition-colors text-left"
+        >
+          <span className="text-3xl">✨</span>
+          <h2 className="text-xl font-bold">Spéciale Lucie</h2>
           <span className="mt-auto text-orange-400 font-semibold group-hover:translate-x-1 transition-transform">
             Jouer →
           </span>

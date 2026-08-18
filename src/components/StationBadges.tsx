@@ -1,4 +1,4 @@
-import { lineColor } from "@/data/lineColors";
+import { lineColor, lineLabel } from "@/data/lineColors";
 
 export default function StationBadges({ lines }: { lines: string[] }) {
   return (
@@ -9,7 +9,7 @@ export default function StationBadges({ lines }: { lines: string[] }) {
           className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-black/80 shadow"
           style={{ backgroundColor: lineColor(line) }}
         >
-          {line}
+          {lineLabel(line)}
         </span>
       ))}
     </div>

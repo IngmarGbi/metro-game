@@ -14,7 +14,7 @@ export default function SchematicPage() {
         </Link>
         <span className="text-sm text-slate-500">Mode plan schématique</span>
       </div>
-      <SchematicGame />
+      <SchematicGame datasetKey="metro" />
     </main>
   );
 }

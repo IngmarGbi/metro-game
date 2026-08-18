@@ -4,19 +4,39 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import SchematicMap from "@/components/SchematicMap";
 import StationBadges from "@/components/StationBadges";
-import { pickRandomStations } from "@/lib/stations";
-import type { Station } from "@/lib/types";
+import { shuffle } from "@/lib/stations";
+import { METRO_DATASET } from "@/lib/metroDataset";
+import { SPECIAL_DATASET } from "@/lib/specialDataset";
+import type { SchematicPoint } from "@/lib/schematicDataset";
 
 const ROUNDS = 5;
 const MAX_ATTEMPTS = 3;
+const SPECIAL_LINES = ["RERB", "T2"];
+const SPECIAL_LINES_ROUNDS = 3;
+
+const DATASETS = { metro: METRO_DATASET, special: SPECIAL_DATASET };
 
 interface RoundResult {
-  station: Station;
+  station: SchematicPoint;
   points: number;
 }
 
-export default function SchematicGame() {
-  const [rounds, setRounds] = useState<Station[]>(() => pickRandomStations(ROUNDS));
+/** Spéciale Lucie skews the draw so RER B / T2 stations show up often, not just
+ * by luck of a uniform pool where they're a small minority. */
+function pickRounds(datasetKey: keyof typeof DATASETS, points: SchematicPoint[]): SchematicPoint[] {
+  if (datasetKey !== "special") {
+    return shuffle(points).slice(0, ROUNDS);
+  }
+  const featured = points.filter((p) => p.lines.some((l) => SPECIAL_LINES.includes(l)));
+  const others = points.filter((p) => !p.lines.some((l) => SPECIAL_LINES.includes(l)));
+  const chosenFeatured = shuffle(featured).slice(0, SPECIAL_LINES_ROUNDS);
+  const chosenOthers = shuffle(others).slice(0, ROUNDS - chosenFeatured.length);
+  return shuffle([...chosenFeatured, ...chosenOthers]);
+}
+
+export default function SchematicGame({ datasetKey }: { datasetKey: keyof typeof DATASETS }) {
+  const dataset = DATASETS[datasetKey];
+  const [rounds, setRounds] = useState<SchematicPoint[]>(() => pickRounds(datasetKey, dataset.points));
   const [roundIndex, setRoundIndex] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
   const [wrongGuessIds, setWrongGuessIds] = useState<string[]>([]);
@@ -64,7 +84,7 @@ export default function SchematicGame() {
   };
 
   const restart = () => {
-    setRounds(pickRandomStations(ROUNDS));
+    setRounds(pickRounds(datasetKey, dataset.points));
     setRoundIndex(0);
     setAttemptsLeft(MAX_ATTEMPTS);
     setWrongGuessIds([]);
@@ -134,6 +154,7 @@ export default function SchematicGame() {
 
       <div className="h-[60vh] min-h-[400px] w-full">
         <SchematicMap
+          dataset={dataset}
           disabled={resolved}
           correctStationId={target.id}
           wrongGuessIds={wrongGuessIds}

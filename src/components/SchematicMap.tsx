@@ -1,13 +1,11 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { VIEW_BOX } from "@/lib/schematic";
-import { SCHEMATIC_STATIONS, nearestSchematicStation } from "@/lib/schematicStations";
-import { LINE_EDGES } from "@/lib/stations";
-import { SCHEMATIC_STATIONS_BY_ID } from "@/lib/schematicStations";
+import type { SchematicDataset } from "@/lib/schematicDataset";
 import { lineColor } from "@/data/lineColors";
 
 interface Props {
+  dataset: SchematicDataset;
   disabled: boolean;
   correctStationId: string | null;
   wrongGuessIds: string[];
@@ -22,8 +20,16 @@ const MIN_SCALE = 0.7;
 const MAX_SCALE = 8;
 const DRAG_THRESHOLD = 5;
 const NEUTRAL_LINE_COLOR = "#475569";
+const INITIAL_SCALE = 1.6;
+
+function initialTransform(viewBox: SchematicDataset["viewBox"]) {
+  const cx = viewBox.x + viewBox.width / 2;
+  const cy = viewBox.y + viewBox.height / 2;
+  return { scale: INITIAL_SCALE, tx: cx - cx * INITIAL_SCALE, ty: cy - cy * INITIAL_SCALE };
+}
 
 export default function SchematicMap({
+  dataset,
   disabled,
   correctStationId,
   wrongGuessIds,
@@ -34,7 +40,7 @@ export default function SchematicMap({
   onSelectStation,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [transform, setTransform] = useState({ scale: 1.6, tx: -180, ty: -80 });
+  const [transform, setTransform] = useState(() => initialTransform(dataset.viewBox));
   const drag = useRef<{
     startX: number;
     startY: number;
@@ -98,27 +104,30 @@ export default function SchematicMap({
     const p = getSvgPoint(e.clientX, e.clientY);
     const localX = (p.x - transform.tx) / transform.scale;
     const localY = (p.y - transform.ty) / transform.scale;
-    const nearest = nearestSchematicStation(localX, localY);
+    const nearest = dataset.nearest(localX, localY);
     onSelectStation(nearest.id);
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => endDrag(e, true);
   const handlePointerCancel = (e: React.PointerEvent<SVGSVGElement>) => endDrag(e, false);
 
-  const zoomBy = useCallback((factor: number, center?: { x: number; y: number }) => {
-    setTransform((t) => {
-      const cx = center?.x ?? VIEW_BOX.x + VIEW_BOX.width / 2;
-      const cy = center?.y ?? VIEW_BOX.y + VIEW_BOX.height / 2;
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, t.scale * factor));
-      const contentX = (cx - t.tx) / t.scale;
-      const contentY = (cy - t.ty) / t.scale;
-      return {
-        scale: newScale,
-        tx: cx - contentX * newScale,
-        ty: cy - contentY * newScale,
-      };
-    });
-  }, []);
+  const zoomBy = useCallback(
+    (factor: number, center?: { x: number; y: number }) => {
+      setTransform((t) => {
+        const cx = center?.x ?? dataset.viewBox.x + dataset.viewBox.width / 2;
+        const cy = center?.y ?? dataset.viewBox.y + dataset.viewBox.height / 2;
+        const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, t.scale * factor));
+        const contentX = (cx - t.tx) / t.scale;
+        const contentY = (cy - t.ty) / t.scale;
+        return {
+          scale: newScale,
+          tx: cx - contentX * newScale,
+          ty: cy - contentY * newScale,
+        };
+      });
+    },
+    [dataset.viewBox]
+  );
 
   // Native (non-passive) listener: React's onWheel is passive, so preventDefault()
   // there throws instead of stopping the page from scrolling while we zoom.
@@ -144,7 +153,7 @@ export default function SchematicMap({
     <div className="relative w-full h-full touch-none select-none">
       <svg
         ref={svgRef}
-        viewBox={`${VIEW_BOX.x} ${VIEW_BOX.y} ${VIEW_BOX.width} ${VIEW_BOX.height}`}
+        viewBox={`${dataset.viewBox.x} ${dataset.viewBox.y} ${dataset.viewBox.width} ${dataset.viewBox.height}`}
         className="w-full h-full bg-slate-950 rounded-xl cursor-crosshair touch-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -152,9 +161,9 @@ export default function SchematicMap({
         onPointerCancel={handlePointerCancel}
       >
         <g transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.scale})`}>
-          {LINE_EDGES.map((edge, i) => {
-            const a = SCHEMATIC_STATIONS_BY_ID[edge.a];
-            const b = SCHEMATIC_STATIONS_BY_ID[edge.b];
+          {dataset.edges.map((edge, i) => {
+            const a = dataset.pointsById[edge.a];
+            const b = dataset.pointsById[edge.b];
             if (!a || !b) return null;
             return (
               <line
@@ -171,7 +180,7 @@ export default function SchematicMap({
             );
           })}
 
-          {SCHEMATIC_STATIONS.map((s) => (
+          {dataset.points.map((s) => (
             <circle
               key={s.id}
               cx={s.sx}
@@ -184,7 +193,7 @@ export default function SchematicMap({
           ))}
 
           {wrongGuessIds.map((id) => {
-            const s = SCHEMATIC_STATIONS_BY_ID[id];
+            const s = dataset.pointsById[id];
             if (!s) return null;
             return (
               <g key={id}>
@@ -195,10 +204,10 @@ export default function SchematicMap({
             );
           })}
 
-          {selectedStationId && SCHEMATIC_STATIONS_BY_ID[selectedStationId] && (
+          {selectedStationId && dataset.pointsById[selectedStationId] && (
             <circle
-              cx={SCHEMATIC_STATIONS_BY_ID[selectedStationId].sx}
-              cy={SCHEMATIC_STATIONS_BY_ID[selectedStationId].sy}
+              cx={dataset.pointsById[selectedStationId].sx}
+              cy={dataset.pointsById[selectedStationId].sy}
               r={3.2}
               fill="#3b82f6"
               stroke="white"
@@ -206,11 +215,11 @@ export default function SchematicMap({
             />
           )}
 
-          {revealCorrect && correctStationId && SCHEMATIC_STATIONS_BY_ID[correctStationId] && (
+          {revealCorrect && correctStationId && dataset.pointsById[correctStationId] && (
             <g>
               <circle
-                cx={SCHEMATIC_STATIONS_BY_ID[correctStationId].sx}
-                cy={SCHEMATIC_STATIONS_BY_ID[correctStationId].sy}
+                cx={dataset.pointsById[correctStationId].sx}
+                cy={dataset.pointsById[correctStationId].sy}
                 r={4}
                 fill="#22c55e"
                 stroke="white"
