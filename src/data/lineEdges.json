@@ -1166,11 +1166,6 @@
  },
  {
   "line": "5",
-  "a": "jaures",
-  "b": "jacques-bonsergent"
- },
- {
-  "line": "5",
   "a": "jacques-bonsergent",
   "b": "republique"
  },
@@ -1943,5 +1938,10 @@
   "line": "3",
   "a": "anatole-france",
   "b": "pont-de-levallois"
+ },
+ {
+  "line": "5",
+  "a": "gare-du-nord",
+  "b": "stalingrad"
  }
 ]

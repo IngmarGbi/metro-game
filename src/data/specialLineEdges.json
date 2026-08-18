@@ -1166,11 +1166,6 @@
  },
  {
   "line": "5",
-  "a": "jaures",
-  "b": "jacques-bonsergent"
- },
- {
-  "line": "5",
   "a": "jacques-bonsergent",
   "b": "republique"
  },
@@ -2288,5 +2283,10 @@
   "line": "T2",
   "a": "porte-d-issy-t2",
   "b": "porte-de-versailles"
+ },
+ {
+  "line": "5",
+  "a": "gare-du-nord",
+  "b": "stalingrad"
  }
 ]
