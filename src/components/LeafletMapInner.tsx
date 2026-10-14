@@ -27,20 +27,29 @@ function ClickCatcher({ disabled, onGuess }: { disabled: boolean; onGuess: (lat:
   return null;
 }
 
+// CARTO's Positron style has no POI/station icons at any zoom, unlike OSM's
+// standard style, so it needs no zoom cap to hide the answer. Falls back to
+// OSM (capped lower, to limit how much it gives away) until the key is set.
+const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+const TILE_URL = CARTO_KEY
+  ? `https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png?key=${CARTO_KEY}`
+  : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTRIBUTION = CARTO_KEY
+  ? '&copy; OpenStreetMap contributors &copy; CARTO'
+  : '&copy; OpenStreetMap contributors';
+const TILE_MAX_ZOOM = CARTO_KEY ? 17 : 15;
+
 export default function LeafletMapInner({ guess, actual, disabled, onGuess }: Props) {
   return (
     <MapContainer
       center={PARIS_CENTER}
       zoom={12}
       minZoom={10}
-      maxZoom={15}
+      maxZoom={TILE_MAX_ZOOM}
       className="w-full h-full rounded-xl"
       attributionControl={false}
     >
-      <TileLayer
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
-      />
+      <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
       <ClickCatcher disabled={disabled} onGuess={onGuess} />
       {guess && (
         <CircleMarker
