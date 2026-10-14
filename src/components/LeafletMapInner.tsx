@@ -33,7 +33,7 @@ export default function LeafletMapInner({ guess, actual, disabled, onGuess }: Pr
       center={PARIS_CENTER}
       zoom={12}
       minZoom={10}
-      maxZoom={17}
+      maxZoom={15}
       className="w-full h-full rounded-xl"
       attributionControl={false}
     >
