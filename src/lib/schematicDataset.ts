@@ -8,8 +8,18 @@ export interface SchematicPoint {
   sy: number;
 }
 
+/** A real line-route path lifted verbatim from a source map, rendered as-is
+ * (with its own affine transform) instead of a straight edge between stations. */
+export interface LinePathSegment {
+  line: string;
+  d: string;
+  /** 2D affine [a, b, c, d, e, f], i.e. SVG's matrix(a,b,c,d,e,f). */
+  matrix: [number, number, number, number, number, number];
+}
+
 export interface SchematicDataset {
   edges: LineEdge[];
+  linePaths: LinePathSegment[];
   points: SchematicPoint[];
   pointsById: Record<string, SchematicPoint>;
   viewBox: { x: number; y: number; width: number; height: number };
@@ -18,12 +28,24 @@ export interface SchematicDataset {
 
 const PAD = 25;
 
-/** Builds a renderable schematic map (points + edges + viewBox) from a station/edge set.
- * Data y grows northward; SVG y grows downward, so it gets flipped to draw north-up. */
-export function buildSchematicDataset(stations: Station[], edges: LineEdge[]): SchematicDataset {
+interface BuildOptions {
+  linePaths?: LinePathSegment[];
+  /** Source y grows northward by default, opposite of SVG's downward y, so it's
+   * flipped to draw north-up. Sources already in SVG-native orientation (y down)
+   * should pass false. */
+  flipY?: boolean;
+}
+
+/** Builds a renderable schematic map (points + edges/paths + viewBox) from a station set. */
+export function buildSchematicDataset(
+  stations: Station[],
+  edges: LineEdge[],
+  options: BuildOptions = {}
+): SchematicDataset {
+  const { linePaths = [], flipY = true } = options;
+
   const minX = Math.min(...stations.map((s) => s.x));
   const maxX = Math.max(...stations.map((s) => s.x));
-  const minY = Math.min(...stations.map((s) => s.y));
   const maxY = Math.max(...stations.map((s) => s.y));
 
   const points: SchematicPoint[] = stations.map((s) => ({
@@ -31,9 +53,12 @@ export function buildSchematicDataset(stations: Station[], edges: LineEdge[]): S
     name: s.name,
     lines: s.lines,
     sx: s.x,
-    sy: maxY - s.y + PAD,
+    sy: flipY ? maxY - s.y + PAD : s.y,
   }));
   const pointsById = Object.fromEntries(points.map((p) => [p.id, p]));
+
+  const minSy = Math.min(...points.map((p) => p.sy));
+  const maxSy = Math.max(...points.map((p) => p.sy));
 
   function nearest(x: number, y: number): SchematicPoint {
     let best = points[0];
@@ -50,9 +75,10 @@ export function buildSchematicDataset(stations: Station[], edges: LineEdge[]): S
 
   return {
     edges,
+    linePaths,
     points,
     pointsById,
-    viewBox: { x: minX - PAD, y: 0, width: maxX - minX + PAD * 2, height: maxY - minY + PAD * 2 },
+    viewBox: { x: minX - PAD, y: minSy - PAD, width: maxX - minX + PAD * 2, height: maxSy - minSy + PAD * 2 },
     nearest,
   };
 }

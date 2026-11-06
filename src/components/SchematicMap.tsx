@@ -18,7 +18,6 @@ interface Props {
 
 const MIN_SCALE = 0.7;
 const MAX_SCALE = 8;
-const DRAG_THRESHOLD = 5;
 const NEUTRAL_LINE_COLOR = "#475569";
 const INITIAL_SCALE = 1.6;
 
@@ -40,6 +39,9 @@ export default function SchematicMap({
   onSelectStation,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
+  // Visual sizes (dot radii, stroke widths) were tuned for the ~500-unit-wide
+  // special/RER-B dataset; scale them to whatever width this dataset actually uses.
+  const unit = dataset.viewBox.width / 500;
   const [transform, setTransform] = useState(() => initialTransform(dataset.viewBox));
   const drag = useRef<{
     startX: number;
@@ -81,7 +83,7 @@ export default function SchematicMap({
     const p = getSvgPoint(e.clientX, e.clientY);
     const dx = p.x - d.startX;
     const dy = p.y - d.startY;
-    if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
+    if (Math.abs(dx) + Math.abs(dy) > unit * 5) {
       d.moved = true;
     }
     // Capture start values into locals (`d`) rather than reading `drag.current`
@@ -161,6 +163,20 @@ export default function SchematicMap({
         onPointerCancel={handlePointerCancel}
       >
         <g transform={`translate(${transform.tx} ${transform.ty}) scale(${transform.scale})`}>
+          {dataset.linePaths.map((seg, i) => (
+            <path
+              key={i}
+              d={seg.d}
+              transform={`matrix(${seg.matrix.join(" ")})`}
+              fill="none"
+              stroke={coloredLines ? lineColor(seg.line) : NEUTRAL_LINE_COLOR}
+              strokeWidth={unit * 1.4}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.85}
+            />
+          ))}
+
           {dataset.edges.map((edge, i) => {
             const a = dataset.pointsById[edge.a];
             const b = dataset.pointsById[edge.b];
@@ -173,7 +189,7 @@ export default function SchematicMap({
                 x2={b.sx}
                 y2={b.sy}
                 stroke={coloredLines ? lineColor(edge.line) : NEUTRAL_LINE_COLOR}
-                strokeWidth={1.4}
+                strokeWidth={unit * 1.4}
                 strokeLinecap="round"
                 opacity={0.85}
               />
@@ -185,21 +201,22 @@ export default function SchematicMap({
               key={s.id}
               cx={s.sx}
               cy={s.sy}
-              r={1.6}
+              r={unit * 1.6}
               fill="#0f172a"
               stroke="#e2e8f0"
-              strokeWidth={0.6}
+              strokeWidth={unit * 0.6}
             />
           ))}
 
           {wrongGuessIds.map((id) => {
             const s = dataset.pointsById[id];
             if (!s) return null;
+            const r = unit * 2.2;
             return (
               <g key={id}>
-                <circle cx={s.sx} cy={s.sy} r={3.2} fill="none" stroke="#ef4444" strokeWidth={1} />
-                <line x1={s.sx - 2.2} y1={s.sy - 2.2} x2={s.sx + 2.2} y2={s.sy + 2.2} stroke="#ef4444" strokeWidth={1} />
-                <line x1={s.sx - 2.2} y1={s.sy + 2.2} x2={s.sx + 2.2} y2={s.sy - 2.2} stroke="#ef4444" strokeWidth={1} />
+                <circle cx={s.sx} cy={s.sy} r={unit * 3.2} fill="none" stroke="#ef4444" strokeWidth={unit} />
+                <line x1={s.sx - r} y1={s.sy - r} x2={s.sx + r} y2={s.sy + r} stroke="#ef4444" strokeWidth={unit} />
+                <line x1={s.sx - r} y1={s.sy + r} x2={s.sx + r} y2={s.sy - r} stroke="#ef4444" strokeWidth={unit} />
               </g>
             );
           })}
@@ -208,10 +225,10 @@ export default function SchematicMap({
             <circle
               cx={dataset.pointsById[selectedStationId].sx}
               cy={dataset.pointsById[selectedStationId].sy}
-              r={3.2}
+              r={unit * 3.2}
               fill="#3b82f6"
               stroke="white"
-              strokeWidth={0.8}
+              strokeWidth={unit * 0.8}
             />
           )}
 
@@ -220,10 +237,10 @@ export default function SchematicMap({
               <circle
                 cx={dataset.pointsById[correctStationId].sx}
                 cy={dataset.pointsById[correctStationId].sy}
-                r={4}
+                r={unit * 4}
                 fill="#22c55e"
                 stroke="white"
-                strokeWidth={0.8}
+                strokeWidth={unit * 0.8}
               />
             </g>
           )}

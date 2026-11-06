@@ -1,9 +1,7 @@
 import rawStations from "@/data/stations.json";
-import rawEdges from "@/data/lineEdges.json";
-import type { Station, LineEdge } from "@/lib/types";
+import type { Station } from "@/lib/types";
 
 export const STATIONS = rawStations as Station[];
-export const LINE_EDGES = rawEdges as LineEdge[];
 
 export const STATIONS_BY_ID: Record<string, Station> = Object.fromEntries(
   STATIONS.map((s) => [s.id, s])
